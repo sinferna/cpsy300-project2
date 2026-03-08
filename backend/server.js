@@ -21,6 +21,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.get("/", (req, res) => {
+  res.send("Backend is running");
+});
+
+app.get("/api/test", (req, res) => {
+  res.json({ ok: true });
+});
+
 // API routes
 app.use('/api/insights', insightsRouter);
 app.use('/api/scatter', scatterRouter);
