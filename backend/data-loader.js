@@ -10,8 +10,8 @@ async function loadData() {
   if (recipes) return recipes;
 
   const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
-  const containerName = process.env.AZURE_CONTAINER_NAME || 'data';
-  const blobName = process.env.AZURE_BLOB_NAME || 'recipes.csv';
+  const containerName = process.env.AZURE_CONTAINER_NAME;
+  const blobName = process.env.AZURE_BLOB_NAME;
 
   let csvContent;
 
