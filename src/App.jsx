@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+const API_BASE = "https://cpsy300-w26-g10-cucgeaccbycnh2d8.canadacentral-01.azurewebsites.net";
 const charts = [
   { title: 'Bar Chart', description: 'Average macronutrient content by diet type.', image: '/bar_chart.png' },
   { title: 'Scatter Plot', description: 'Nutrient relationships (e.g., protein vs carbs).', image: '/scatter_plot.png' },
@@ -27,7 +28,7 @@ export default function App() {
   const fetchInsights = async () => {
     setLoading('insights')
     try {
-      const res = await fetch(`/api/insights?${dietParam}`)
+      const res = await fetch(`${API_BASE}/api/insights?${dietParam}`)
       const data = await res.json()
       setInsights(data)
       setRecipes(null)
@@ -44,7 +45,7 @@ export default function App() {
       const params = new URLSearchParams({ page, limit: 10 })
       if (selectedDiet !== 'All Diet Types') params.set('diet_type', selectedDiet)
       if (search.trim()) params.set('search', search.trim())
-      const res = await fetch(`/api/recipes?${params}`)
+      const res = await fetch(`${API_BASE}/api/recipes?${params}`)
       const data = await res.json()
       setRecipes(data)
       setTotalPages(data.totalPages)
@@ -59,7 +60,7 @@ export default function App() {
   const fetchClusters = async () => {
     setLoading('clusters')
     try {
-      const res = await fetch('/api/clusters')
+      const res = await fetch(`${API_BASE}/api/clusters`)
       const data = await res.json()
       setClusters(data)
       setInsights(null)
