@@ -1,24 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db');
+const { loadData } = require('../data-loader');
 
 // GET /api/correlations — Correlation matrix between protein, carbs, and fat
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT protein_g, carbs_g, fat_g FROM recipes
-    `);
+    const recipes = await loadData();
 
-    const rows = result.rows;
-    const n = rows.length;
-
-    if (n < 2) {
+    if (recipes.length < 2) {
       return res.json({ correlation_matrix: null, message: 'Not enough data' });
     }
 
-    const protein = rows.map(r => parseFloat(r.protein_g));
-    const carbs = rows.map(r => parseFloat(r.carbs_g));
-    const fat = rows.map(r => parseFloat(r.fat_g));
+    const protein = recipes.map(r => r.protein_g);
+    const carbs = recipes.map(r => r.carbs_g);
+    const fat = recipes.map(r => r.fat_g);
 
     function pearson(x, y) {
       const n = x.length;

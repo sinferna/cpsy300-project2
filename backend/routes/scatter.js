@@ -1,27 +1,26 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db');
+const { loadData } = require('../data-loader');
 
 // GET /api/scatter — Protein vs carbs data for scatter plot
 router.get('/', async (req, res) => {
   try {
+    const recipes = await loadData();
     const { diet_type } = req.query;
 
-    let query = `
-      SELECT recipe_name, diet_type, protein_g, carbs_g
-      FROM recipes
-    `;
-    const params = [];
-
+    let filtered = recipes;
     if (diet_type && diet_type !== 'All Diet Types') {
-      query += ' WHERE LOWER(diet_type) = LOWER($1)';
-      params.push(diet_type);
+      filtered = recipes.filter(r => r.diet_type.toLowerCase() === diet_type.toLowerCase());
     }
 
-    query += ' ORDER BY recipe_name';
+    const result = filtered.map(r => ({
+      recipe_name: r.recipe_name,
+      diet_type: r.diet_type,
+      protein_g: r.protein_g,
+      carbs_g: r.carbs_g,
+    }));
 
-    const result = await pool.query(query, params);
-    res.json(result.rows);
+    res.json(result);
   } catch (err) {
     console.error('Error fetching scatter data:', err);
     res.status(500).json({ error: 'Failed to fetch scatter plot data' });

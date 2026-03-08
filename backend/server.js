@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const pool = require('./db');
+const { loadData } = require('./data-loader');
 const insightsRouter = require('./routes/insights');
 const scatterRouter = require('./routes/scatter');
 const correlationsRouter = require('./routes/correlations');
@@ -29,6 +29,14 @@ app.use('/api/distribution', distributionRouter);
 app.use('/api/recipes', recipesRouter);
 app.use('/api/clusters', clustersRouter);
 
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
-});
+// Preload data then start server
+loadData()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Backend server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Failed to load data:', err);
+    process.exit(1);
+  });

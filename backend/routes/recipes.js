@@ -1,58 +1,34 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db');
+const { loadData } = require('../data-loader');
 
 // GET /api/recipes — Paginated recipes with optional filters
 router.get('/', async (req, res) => {
   try {
+    const recipes = await loadData();
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
-    const offset = (page - 1) * limit;
     const { diet_type, search } = req.query;
 
-    let whereClause = '';
-    const params = [];
-    const conditions = [];
+    let filtered = recipes;
 
     if (diet_type && diet_type !== 'All Diet Types') {
-      params.push(diet_type);
-      conditions.push(`LOWER(diet_type) = LOWER($${params.length})`);
+      filtered = filtered.filter(r => r.diet_type.toLowerCase() === diet_type.toLowerCase());
     }
 
     if (search && search.trim()) {
-      params.push(`%${search.trim()}%`);
-      conditions.push(`(LOWER(recipe_name) LIKE LOWER($${params.length}) OR LOWER(diet_type) LIKE LOWER($${params.length}))`);
+      const s = search.trim().toLowerCase();
+      filtered = filtered.filter(r =>
+        r.recipe_name.toLowerCase().includes(s) || r.diet_type.toLowerCase().includes(s)
+      );
     }
 
-    if (conditions.length > 0) {
-      whereClause = ' WHERE ' + conditions.join(' AND ');
-    }
-
-    // Get total count
-    const countResult = await pool.query(
-      `SELECT COUNT(*)::int AS total FROM recipes${whereClause}`,
-      params
-    );
-    const total = countResult.rows[0].total;
+    const total = filtered.length;
     const totalPages = Math.ceil(total / limit);
+    const offset = (page - 1) * limit;
+    const data = filtered.slice(offset, offset + limit);
 
-    // Get paginated rows
-    const dataParams = [...params, limit, offset];
-    const dataResult = await pool.query(
-      `SELECT id, diet_type, recipe_name, cuisine_type, protein_g, carbs_g, fat_g, extraction_day, extraction_time
-       FROM recipes${whereClause}
-       ORDER BY id
-       LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
-      dataParams
-    );
-
-    res.json({
-      page,
-      limit,
-      total,
-      totalPages,
-      data: dataResult.rows,
-    });
+    res.json({ page, limit, total, totalPages, data });
   } catch (err) {
     console.error('Error fetching recipes:', err);
     res.status(500).json({ error: 'Failed to fetch recipes' });
