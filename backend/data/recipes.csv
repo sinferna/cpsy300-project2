@@ -1,0 +1,76 @@
+Diet_type,Recipe_name,Cuisine_type,Protein(g),Carbs(g),Fat(g),Extraction_day,Extraction_time
+Keto,Grilled Chicken Thighs,American,35.2,2.1,18.5,Monday,08:30
+Keto,Bacon Wrapped Avocado,American,12.8,3.4,28.6,Monday,08:30
+Keto,Salmon with Butter Sauce,Scandinavian,32.5,0.8,22.3,Monday,09:00
+Keto,Cheese Stuffed Peppers,Mexican,18.4,6.2,24.1,Monday,09:00
+Keto,Beef Stir Fry,Asian,28.7,5.5,16.4,Tuesday,08:30
+Keto,Egg Muffins,American,14.3,1.2,12.8,Tuesday,08:30
+Keto,Zucchini Noodles Alfredo,Italian,15.6,7.8,19.2,Tuesday,09:00
+Keto,Cauliflower Mac and Cheese,American,16.2,8.4,21.5,Wednesday,08:30
+Keto,Pork Belly Bites,Asian,22.1,1.5,32.4,Wednesday,09:00
+Keto,Tuna Salad Lettuce Wraps,Mediterranean,24.8,3.2,14.6,Wednesday,09:00
+Keto,Lamb Chops with Herb Butter,Mediterranean,30.4,0.5,25.7,Thursday,08:30
+Keto,Coconut Curry Chicken,Asian,26.3,4.8,20.1,Thursday,09:00
+Keto,Cream Cheese Pancakes,American,10.5,3.6,15.2,Thursday,09:00
+Keto,Steak with Garlic Butter,American,38.2,0.3,24.8,Friday,08:30
+Keto,Shrimp Scampi,Italian,22.6,2.4,16.9,Friday,09:00
+Vegan,Quinoa Buddha Bowl,Asian,14.2,42.5,8.3,Monday,08:30
+Vegan,Lentil Soup,Indian,12.8,35.6,4.2,Monday,08:30
+Vegan,Chickpea Curry,Indian,11.5,38.2,7.8,Monday,09:00
+Vegan,Black Bean Tacos,Mexican,13.4,40.1,6.5,Monday,09:00
+Vegan,Tofu Stir Fry,Asian,16.8,22.4,9.1,Tuesday,08:30
+Vegan,Sweet Potato Chili,Mexican,10.2,44.8,3.6,Tuesday,08:30
+Vegan,Mushroom Risotto,Italian,8.4,48.2,6.2,Tuesday,09:00
+Vegan,Falafel Plate,Mediterranean,12.6,36.5,10.4,Wednesday,08:30
+Vegan,Veggie Pad Thai,Asian,9.8,52.3,7.5,Wednesday,09:00
+Vegan,Spinach Pesto Pasta,Italian,11.2,45.6,8.8,Wednesday,09:00
+Vegan,Cauliflower Wings,American,6.5,28.4,5.2,Thursday,08:30
+Vegan,Jackfruit Pulled Pork,American,4.8,32.6,2.8,Thursday,09:00
+Vegan,Tempeh Bacon BLT,American,18.2,24.5,11.3,Thursday,09:00
+Vegan,Coconut Lentil Daal,Indian,14.6,38.4,8.6,Friday,08:30
+Vegan,Mediterranean Couscous,Mediterranean,10.8,46.2,5.4,Friday,09:00
+Paleo,Grilled Salmon,Scandinavian,34.5,0.0,18.2,Monday,08:30
+Paleo,Sweet Potato Hash,American,8.2,32.4,6.8,Monday,08:30
+Paleo,Chicken Drumsticks,American,28.6,0.0,12.4,Monday,09:00
+Paleo,Beef Bone Broth,American,10.4,2.2,4.5,Monday,09:00
+Paleo,Turkey Meatballs,Italian,24.8,6.5,10.2,Tuesday,08:30
+Paleo,Baked Cod with Veggies,Mediterranean,26.2,8.4,5.8,Tuesday,08:30
+Paleo,Lamb Burgers,Mediterranean,30.5,4.2,18.6,Tuesday,09:00
+Paleo,Stuffed Bell Peppers,Mexican,18.4,14.8,8.2,Wednesday,08:30
+Paleo,Pork Tenderloin,American,32.6,0.5,8.4,Wednesday,09:00
+Paleo,Shrimp and Avocado Salad,Mexican,20.2,6.8,14.5,Wednesday,09:00
+Paleo,Zucchini Boats,Italian,16.8,10.2,9.6,Thursday,08:30
+Paleo,Roasted Chicken,American,28.4,0.0,14.2,Thursday,09:00
+Paleo,Egg and Veggie Scramble,American,18.6,5.4,12.8,Thursday,09:00
+Paleo,Bison Steak,American,36.2,0.0,10.5,Friday,08:30
+Paleo,Coconut Shrimp,Asian,22.4,12.6,16.2,Friday,09:00
+Mediterranean,Greek Salad,Greek,6.8,12.4,14.2,Monday,08:30
+Mediterranean,Hummus with Pita,Middle Eastern,8.4,32.6,10.8,Monday,08:30
+Mediterranean,Grilled Sea Bass,Greek,28.5,2.2,8.6,Monday,09:00
+Mediterranean,Shakshuka,Middle Eastern,14.2,18.5,12.4,Monday,09:00
+Mediterranean,Tabbouleh,Middle Eastern,4.6,24.8,6.2,Tuesday,08:30
+Mediterranean,Lamb Kofta,Middle Eastern,22.4,8.6,16.5,Tuesday,08:30
+Mediterranean,Stuffed Grape Leaves,Greek,6.2,18.4,8.5,Tuesday,09:00
+Mediterranean,Baked Feta Pasta,Greek,16.8,42.5,18.2,Wednesday,08:30
+Mediterranean,Chicken Shawarma,Middle Eastern,26.4,12.8,14.6,Wednesday,09:00
+Mediterranean,Lentil Salad,Greek,12.6,28.4,4.8,Wednesday,09:00
+Mediterranean,Moussaka,Greek,18.2,22.6,16.4,Thursday,08:30
+Mediterranean,Fish Tagine,Moroccan,24.5,16.2,8.8,Thursday,09:00
+Mediterranean,Spanakopita,Greek,10.4,26.8,14.2,Thursday,09:00
+Mediterranean,Fattoush Salad,Middle Eastern,5.2,16.4,8.6,Friday,08:30
+Mediterranean,Roasted Red Pepper Soup,Middle Eastern,6.8,22.5,10.2,Friday,09:00
+Vegetarian,Margherita Pizza,Italian,14.2,48.6,12.8,Monday,08:30
+Vegetarian,Veggie Burger,American,18.4,34.2,10.5,Monday,08:30
+Vegetarian,Caprese Salad,Italian,12.6,8.4,14.2,Monday,09:00
+Vegetarian,Cheese Quesadilla,Mexican,16.8,32.5,18.4,Monday,09:00
+Vegetarian,Eggplant Parmesan,Italian,14.5,28.6,16.2,Tuesday,08:30
+Vegetarian,Spinach Lasagna,Italian,18.2,36.4,14.8,Tuesday,08:30
+Vegetarian,Grilled Halloumi Salad,Mediterranean,16.4,12.8,18.6,Tuesday,09:00
+Vegetarian,Paneer Tikka,Indian,20.5,14.2,16.8,Wednesday,08:30
+Vegetarian,Mac and Cheese,American,14.8,42.6,18.2,Wednesday,09:00
+Vegetarian,Veggie Fried Rice,Asian,10.2,48.5,8.4,Wednesday,09:00
+Vegetarian,Mushroom Stroganoff,Russian,8.6,34.2,12.5,Thursday,08:30
+Vegetarian,Cheese Ravioli,Italian,16.4,38.8,14.6,Thursday,09:00
+Vegetarian,Potato Gnocchi,Italian,8.8,44.2,10.4,Thursday,09:00
+Vegetarian,Bean and Cheese Burrito,Mexican,18.6,42.4,16.8,Friday,08:30
+Vegetarian,Garden Veggie Wrap,American,10.4,28.6,8.2,Friday,09:00
