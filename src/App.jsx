@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Page2 from './Page2'
 
 const charts = [
   { title: 'Bar Chart', description: 'Average macronutrient content by diet type.', image: '/bar_chart.png' },
@@ -9,10 +10,23 @@ const charts = [
 
 const dietTypes = ['All Diet Types', 'Keto', 'Vegan', 'Paleo', 'Mediterranean', 'Vegetarian']
 
-export default function App() {
+// ── Pagination button style helper ─────────────────────────────────────────
+function paginationBtn(active) {
+  return {
+    padding: '8px 16px',
+    borderRadius: '8px',
+    border: '1px solid #2d6a4f',
+    backgroundColor: active ? '#2d6a4f' : '#1b2e27',
+    color: active ? '#d8f3dc' : '#b7e4c7',
+    fontWeight: active ? '700' : '400',
+    cursor: 'pointer',
+    fontSize: '14px',
+  }
+}
+
+function Page1({ currentPage, setCurrentPage }) {
   const [search, setSearch] = useState('')
   const [selectedDiet, setSelectedDiet] = useState('All Diet Types')
-  const [currentPage, setCurrentPage] = useState(1)
   const totalPages = 2
 
   return (
@@ -43,7 +57,7 @@ export default function App() {
               onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
             >
               <div style={{ fontSize: '28px', marginBottom: '10px' }}>
-                {chart.image 
+                {chart.image
                   ? <img src={chart.image} alt={chart.title} style={{ width: '100%', borderRadius: '8px' }} />
                   : chart.icon
                 }
@@ -111,7 +125,7 @@ export default function App() {
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center' }}>
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #2d6a4f', backgroundColor: '#1b2e27', color: '#b7e4c7', cursor: 'pointer', fontSize: '14px' }}
+            style={paginationBtn(false)}
           >
             Previous
           </button>
@@ -119,23 +133,14 @@ export default function App() {
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              style={{
-                padding: '8px 14px',
-                borderRadius: '8px',
-                border: '1px solid #2d6a4f',
-                backgroundColor: currentPage === page ? '#2d6a4f' : '#1b2e27',
-                color: currentPage === page ? '#d8f3dc' : '#b7e4c7',
-                fontWeight: currentPage === page ? '700' : '400',
-                cursor: 'pointer',
-                fontSize: '14px',
-              }}
+              style={paginationBtn(currentPage === page)}
             >
               {page}
             </button>
           ))}
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #2d6a4f', backgroundColor: '#1b2e27', color: '#b7e4c7', cursor: 'pointer', fontSize: '14px' }}
+            style={paginationBtn(false)}
           >
             Next
           </button>
@@ -150,4 +155,14 @@ export default function App() {
 
     </div>
   )
+}
+
+export default function App() {
+  const [currentPage, setCurrentPage] = useState(1)
+
+  if (currentPage === 2) {
+    return <Page2 currentPage={currentPage} setCurrentPage={setCurrentPage} />
+  }
+
+  return <Page1 currentPage={currentPage} setCurrentPage={setCurrentPage} />
 }
