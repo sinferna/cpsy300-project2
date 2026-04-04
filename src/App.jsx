@@ -1,5 +1,9 @@
+import { auth, googleProvider, githubProvider } from "./config/firebase";
 import { useState } from 'react'
 import Page2 from './Page2'
+import AuthPage from "./components/auth/AuthPage.jsx";
+import { signOut } from "firebase/auth";
+
 
 const charts = [
   { title: 'Bar Chart', description: 'Average macronutrient content by diet type.', image: '/bar_chart.png' },
@@ -148,6 +152,24 @@ function Page1({ currentPage, setCurrentPage }) {
 
       </main>
 
+ 
+<button
+onClick={()=>signOut(auth)}
+style={{
+position:"absolute",
+right:"30px",
+top:"20px",
+background:"#2d6a4f",
+color:"white",
+border:"none",
+padding:"8px 16px",
+borderRadius:"8px",
+cursor:"pointer"
+}}
+>
+Logout
+</button>
+
       {/* Footer */}
       <footer style={{ backgroundColor: '#1b4332', padding: '16px', textAlign: 'center', borderTop: '2px solid #2d6a4f' }}>
         <p style={{ color: '#74c69d', margin: 0, fontSize: '14px' }}>© 2025 Nutritional Insights. All Rights Reserved.</p>
@@ -158,11 +180,23 @@ function Page1({ currentPage, setCurrentPage }) {
 }
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState(1)
 
-  if (currentPage === 2) {
-    return <Page2 currentPage={currentPage} setCurrentPage={setCurrentPage} />
-  }
+const [currentPage, setCurrentPage] = useState(1);
 
-  return <Page1 currentPage={currentPage} setCurrentPage={setCurrentPage} />
+const [user,setUser] = useState(null);
+
+if(!user){
+
+return <AuthPage setUser={setUser}/>
+
+}
+
+if (currentPage === 2) {
+
+return <Page2 currentPage={currentPage} setCurrentPage={setCurrentPage} />
+
+}
+
+return <Page1 currentPage={currentPage} setCurrentPage={setCurrentPage} />
+
 }
