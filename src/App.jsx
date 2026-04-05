@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Page2 from './Page2'
 
 const charts = [
   { title: 'Bar Chart', description: 'Average macronutrient content by diet type.', image: '/bar_chart.png' },
@@ -11,10 +12,24 @@ const dietTypes = ['All Diet Types', 'keto', 'vegan', 'paleo', 'mediterranean', 
 
 const btnStyle = (bg) => ({ backgroundColor: bg, color: '#d8f3dc', border: 'none', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' })
 
-export default function App() {
+// ── Pagination button style helper ─────────────────────────────────────────
+function paginationBtn(active) {
+  return {
+    padding: '8px 16px',
+    borderRadius: '8px',
+    border: '1px solid #2d6a4f',
+    backgroundColor: active ? '#2d6a4f' : '#1b2e27',
+    color: active ? '#d8f3dc' : '#b7e4c7',
+    fontWeight: active ? '700' : '400',
+    cursor: 'pointer',
+    fontSize: '14px',
+  }
+}
+
+function Page1({ currentPage, setCurrentPage }) {
   const [search, setSearch] = useState('')
   const [selectedDiet, setSelectedDiet] = useState('All Diet Types')
-  const [currentPage, setCurrentPage] = useState(1)
+  const [dataPage, setDataPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
   const [insights, setInsights] = useState(null)
@@ -38,7 +53,7 @@ export default function App() {
     setLoading('')
   }
 
-  const fetchRecipes = async (page = currentPage) => {
+  const fetchRecipes = async (page = dataPage) => {
     setLoading('recipes')
     try {
       const params = new URLSearchParams({ page, limit: 10 })
@@ -71,20 +86,22 @@ export default function App() {
   }
 
   const handlePageChange = (page) => {
-    setCurrentPage(page)
+    setDataPage(page)
     fetchRecipes(page)
   }
 
   // Show max 5 page buttons around current page
   const getPageButtons = () => {
     const pages = []
-    let start = Math.max(1, currentPage - 2)
+    let start = Math.max(1, dataPage - 2)
     let end = Math.min(totalPages, start + 4)
     start = Math.max(1, end - 4)
     for (let i = start; i <= end; i++) pages.push(i)
     return pages
   }
   const pageButtons = getPageButtons()
+
+  const navTotalPages = 2
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#0f1f1a', fontFamily: "'Segoe UI', sans-serif", color: '#e8f5e9' }}>
@@ -133,7 +150,7 @@ export default function App() {
             placeholder="Search by Diet Type"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { setCurrentPage(1); fetchRecipes(1) } }}
+            onKeyDown={(e) => { if (e.key === 'Enter') { setDataPage(1); fetchRecipes(1) } }}
             style={{
               padding: '9px 14px',
               borderRadius: '8px',
@@ -170,7 +187,7 @@ export default function App() {
           <button onClick={fetchInsights} disabled={loading === 'insights'} style={btnStyle('#2d6a4f')}>
             {loading === 'insights' ? 'Loading...' : 'Get Nutritional Insights'}
           </button>
-          <button onClick={() => { setCurrentPage(1); fetchRecipes(1) }} disabled={loading === 'recipes'} style={btnStyle('#1a7a4a')}>
+          <button onClick={() => { setDataPage(1); fetchRecipes(1) }} disabled={loading === 'recipes'} style={btnStyle('#1a7a4a')}>
             {loading === 'recipes' ? 'Loading...' : 'Get Recipes'}
           </button>
           <button onClick={fetchClusters} disabled={loading === 'clusters'} style={btnStyle('#4a7c59')}>
@@ -264,36 +281,57 @@ export default function App() {
           </div>
         )}
 
-        {/* Pagination */}
+        {/* Data Pagination (for recipes) */}
+        {recipes && (
+          <div style={{ marginBottom: '40px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '14px', color: '#b7e4c7' }}>Data Pagination</h2>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center' }}>
+              <button
+                onClick={() => handlePageChange(Math.max(1, dataPage - 1))}
+                style={paginationBtn(false)}
+              >
+                Previous
+              </button>
+              {pageButtons.map((page) => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  style={paginationBtn(dataPage === page)}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                onClick={() => handlePageChange(Math.min(totalPages, dataPage + 1))}
+                style={paginationBtn(false)}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Page Navigation */}
         <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '14px', color: '#b7e4c7' }}>Pagination</h2>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center' }}>
           <button
-            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-            style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #2d6a4f', backgroundColor: '#1b2e27', color: '#b7e4c7', cursor: 'pointer', fontSize: '14px' }}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            style={paginationBtn(false)}
           >
             Previous
           </button>
-          {pageButtons.map((page) => (
+          {[1, 2].map((page) => (
             <button
               key={page}
-              onClick={() => handlePageChange(page)}
-              style={{
-                padding: '8px 14px',
-                borderRadius: '8px',
-                border: '1px solid #2d6a4f',
-                backgroundColor: currentPage === page ? '#2d6a4f' : '#1b2e27',
-                color: currentPage === page ? '#d8f3dc' : '#b7e4c7',
-                fontWeight: currentPage === page ? '700' : '400',
-                cursor: 'pointer',
-                fontSize: '14px',
-              }}
+              onClick={() => setCurrentPage(page)}
+              style={paginationBtn(currentPage === page)}
             >
               {page}
             </button>
           ))}
           <button
-            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-            style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #2d6a4f', backgroundColor: '#1b2e27', color: '#b7e4c7', cursor: 'pointer', fontSize: '14px' }}
+            onClick={() => setCurrentPage((p) => Math.min(navTotalPages, p + 1))}
+            style={paginationBtn(false)}
           >
             Next
           </button>
@@ -308,4 +346,14 @@ export default function App() {
 
     </div>
   )
+}
+
+export default function App() {
+  const [currentPage, setCurrentPage] = useState(1)
+
+  if (currentPage === 2) {
+    return <Page2 currentPage={currentPage} setCurrentPage={setCurrentPage} />
+  }
+
+  return <Page1 currentPage={currentPage} setCurrentPage={setCurrentPage} />
 }
