@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { auth, googleProvider, githubProvider } from './config/firebase'
+import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth'
 
 // ── Design tokens (matches Page 1 dark green theme) ────────────────────────
 const c = {
@@ -107,9 +109,9 @@ function paginationBtn(active) {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-//  SecurityComplianceCard
-// ══════════════════════════════════════════════════════════════════════════
+// ────────────────────────────────────────────────────────────────────────────
+//  SecurityComplianceCard — runs real backend security scans
+// ────────────────────────────────────────────────────────────────────────────
 function SecurityComplianceCard() {
   const [securityStatus, setSecurityStatus] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -121,20 +123,31 @@ function SecurityComplianceCard() {
       const data = await res.json()
       setSecurityStatus(data)
     } catch {
-      // Demo fallback
-      setSecurityStatus({ encryption: true, accessControl: true, compliance: true })
+      setSecurityStatus(null)
     } finally {
       setLoading(false)
     }
   }
 
-  const StatusRow = ({ label, ok, trueLabel, falseLabel }) => (
-    <p style={{ margin: '0 0 8px', fontSize: '14px', color: c.textPrimary }}>
-      {label}:{' '}
-      <span style={{ color: ok ? c.successText : c.errorText, fontWeight: '600' }}>
-        {ok ? trueLabel : falseLabel}
+  const CheckItem = ({ check }) => (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '0 0 6px', fontSize: '13px' }}>
+      <span style={{ color: check.passed ? c.successText : c.errorText, fontWeight: '700', flexShrink: 0 }}>
+        {check.passed ? '\u2713' : '\u2717'}
       </span>
-    </p>
+      <span>
+        <span style={{ color: c.textPrimary, fontWeight: '600' }}>{check.check}</span>
+        <span style={{ color: c.textMuted }}> — {check.detail}</span>
+      </span>
+    </div>
+  )
+
+  const CategoryBlock = ({ title, category }) => (
+    <div style={{ marginBottom: '16px' }}>
+      <p style={{ margin: '0 0 8px', fontWeight: '700', fontSize: '14px', color: category.passed ? c.successText : c.errorText }}>
+        {title}: {category.label}
+      </p>
+      {category.checks.map((ch, i) => <CheckItem key={i} check={ch} />)}
+    </div>
   )
 
   return (
@@ -142,17 +155,31 @@ function SecurityComplianceCard() {
       <SectionHeading>Security &amp; Compliance</SectionHeading>
       <Card>
         <Btn onClick={fetchSecurityStatus} color={c.btnBlue} disabled={loading}>
-          {loading ? 'Loading…' : 'Get Security Status'}
+          {loading ? 'Scanning\u2026' : 'Run Security Scan'}
         </Btn>
 
         {securityStatus && (
           <div style={{ marginTop: '18px' }}>
-            <p style={{ margin: '0 0 12px', fontWeight: '700', fontSize: '15px', color: c.textAccent }}>
-              Security Status
+            <div style={{
+              display: 'inline-block',
+              padding: '6px 14px',
+              borderRadius: '6px',
+              marginBottom: '16px',
+              backgroundColor: securityStatus.allPassed ? '#14532d' : '#7f1d1d',
+              color: securityStatus.allPassed ? c.successText : c.errorText,
+              fontSize: '13px',
+              fontWeight: '600',
+            }}>
+              {securityStatus.allPassed ? 'All checks passed' : 'Some checks need attention'}
+            </div>
+
+            <CategoryBlock title="Encryption" category={securityStatus.encryption} />
+            <CategoryBlock title="Access Control" category={securityStatus.accessControl} />
+            <CategoryBlock title="Compliance" category={securityStatus.compliance} />
+
+            <p style={{ margin: '8px 0 0', fontSize: '12px', color: c.textMuted }}>
+              Scanned at {new Date(securityStatus.timestamp).toLocaleString()}
             </p>
-            <StatusRow label="Encryption"     ok={securityStatus.encryption}    trueLabel="Enabled"        falseLabel="Disabled" />
-            <StatusRow label="Access Control"  ok={securityStatus.accessControl} trueLabel="Secure"         falseLabel="Insecure" />
-            <StatusRow label="Compliance"      ok={securityStatus.compliance}    trueLabel="GDPR Compliant" falseLabel="Non-Compliant" />
           </div>
         )}
       </Card>
@@ -160,18 +187,97 @@ function SecurityComplianceCard() {
   )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-//  OAuth2FACard
-// ══════════════════════════════════════════════════════════════════════════
+// ────────────────────────────────────────────────────────────────────────────
+//  OAuth2FACard — Firebase OAuth + real TOTP 2FA
+// ────────────────────────────────────────────────────────────────────────────
 function OAuth2FACard() {
+  const [user, setUser]                 = useState(null)
   const [twoFactorCode, setTwoFactorCode] = useState('')
-  const [authMessage,   setAuthMessage]   = useState('')
-  const [authType,      setAuthType]      = useState('info')
-  const [loading,       setLoading]       = useState(false)
+  const [authMessage, setAuthMessage]   = useState('')
+  const [authType, setAuthType]         = useState('info')
+  const [loading, setLoading]           = useState(false)
+  const [qrCode, setQrCode]            = useState(null)
+  const [manualKey, setManualKey]       = useState('')
+  const [twoFASetup, setTwoFASetup]    = useState(false)
+  const [twoFAVerified, setTwoFAVerified] = useState(false)
 
-  const handleOAuth = (provider) => {
-    setAuthMessage(`Redirecting to ${provider} login…`)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser)
+      if (currentUser) {
+        check2FAStatus(currentUser.email)
+      } else {
+        setQrCode(null)
+        setManualKey('')
+        setTwoFASetup(false)
+        setTwoFAVerified(false)
+      }
+    })
+    return unsubscribe
+  }, [])
+
+  const check2FAStatus = async (email) => {
+    try {
+      const res = await fetch(`/api/verify-2fa/status?email=${encodeURIComponent(email)}`)
+      const data = await res.json()
+      setTwoFASetup(data.setup)
+      setTwoFAVerified(data.verified)
+    } catch {
+      setTwoFASetup(false)
+      setTwoFAVerified(false)
+    }
+  }
+
+  const handleOAuth = async (provider) => {
+    setLoading(true)
+    setAuthMessage('')
+    try {
+      const providerObj = provider === 'Google' ? googleProvider : githubProvider
+      const result = await signInWithPopup(auth, providerObj)
+      setAuthMessage(`Signed in as ${result.user.displayName || result.user.email}`)
+      setAuthType('success')
+    } catch (err) {
+      setAuthMessage(err.message || `${provider} login failed.`)
+      setAuthType('error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    await signOut(auth)
+    setUser(null)
+    setQrCode(null)
+    setManualKey('')
+    setTwoFASetup(false)
+    setTwoFAVerified(false)
+    setAuthMessage('Signed out successfully.')
     setAuthType('info')
+  }
+
+  const setup2FA = async () => {
+    if (!user) return
+    setLoading(true)
+    setAuthMessage('')
+    try {
+      const res = await fetch('/api/verify-2fa/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email }),
+      })
+      const data = await res.json()
+      setQrCode(data.qrCode)
+      setManualKey(data.manualKey)
+      setTwoFASetup(true)
+      setTwoFAVerified(false)
+      setAuthMessage(data.message)
+      setAuthType('info')
+    } catch {
+      setAuthMessage('Failed to set up 2FA.')
+      setAuthType('error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const verify2FA = async () => {
@@ -180,20 +286,28 @@ function OAuth2FACard() {
       setAuthType('error')
       return
     }
+    if (!user) {
+      setAuthMessage('Please sign in first.')
+      setAuthType('error')
+      return
+    }
     setLoading(true)
     try {
-      const res  = await fetch('/api/verify-2fa', {
-        method:  'POST',
+      const res = await fetch('/api/verify-2fa', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ code: twoFactorCode }),
+        body: JSON.stringify({ code: twoFactorCode, email: user.email }),
       })
       const data = await res.json()
       setAuthMessage(data.message)
       setAuthType(res.ok ? 'success' : 'error')
+      if (res.ok) {
+        setTwoFAVerified(true)
+        setQrCode(null)
+      }
     } catch {
-      const valid = twoFactorCode.length === 6
-      setAuthMessage(valid ? '2FA verified successfully.' : 'Invalid code — must be 6 digits.')
-      setAuthType(valid ? 'success' : 'error')
+      setAuthMessage('Failed to verify 2FA code.')
+      setAuthType('error')
     } finally {
       setLoading(false)
       setTwoFactorCode('')
@@ -207,35 +321,109 @@ function OAuth2FACard() {
         <p style={{ margin: '0 0 12px', fontWeight: '700', fontSize: '15px', color: c.textAccent }}>
           Secure Login
         </p>
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
-          <Btn onClick={() => handleOAuth('Google')} color={c.btnBlue}>Login with Google</Btn>
-          <Btn onClick={() => handleOAuth('GitHub')} color={c.btnBlue}>Login with GitHub</Btn>
-        </div>
 
-        <label style={{ display: 'block', fontSize: '14px', color: c.textMuted, marginBottom: '8px' }}>
-          Enter 2FA Code
-        </label>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <input
-            type="tel"
-            placeholder="Enter your 2FA code"
-            value={twoFactorCode}
-            onChange={e => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            style={{
-              padding:         '10px 14px',
-              borderRadius:    '8px',
-              border:          `1px solid ${c.border}`,
-              fontSize:        '14px',
-              backgroundColor: '#0f1f1a',
-              color:           c.textPrimary,
-              outline:         'none',
-              width:           '260px',
-            }}
-          />
-          <Btn onClick={verify2FA} color={c.btnGreen} disabled={loading}>
-            {loading ? 'Verifying…' : 'Verify'}
-          </Btn>
-        </div>
+        {user ? (
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              {user.photoURL && (
+                <img src={user.photoURL} alt="avatar" style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
+              )}
+              <div>
+                <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: c.textPrimary }}>
+                  {user.displayName || 'User'}
+                </p>
+                <p style={{ margin: 0, fontSize: '12px', color: c.textMuted }}>{user.email}</p>
+              </div>
+              {twoFAVerified && (
+                <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '4px', backgroundColor: '#14532d', color: c.successText, fontWeight: '600' }}>
+                  2FA Active
+                </span>
+              )}
+            </div>
+            <Btn onClick={handleLogout} color={c.btnRed}>Sign Out</Btn>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
+            <Btn onClick={() => handleOAuth('Google')} color={c.btnBlue} disabled={loading}>
+              {loading ? 'Signing in\u2026' : 'Login with Google'}
+            </Btn>
+            <Btn onClick={() => handleOAuth('GitHub')} color={c.btnBlue} disabled={loading}>
+              {loading ? 'Signing in\u2026' : 'Login with GitHub'}
+            </Btn>
+          </div>
+        )}
+
+        {/* 2FA Section — only show when logged in */}
+        {user && (
+          <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: '18px', marginTop: '8px' }}>
+            <p style={{ margin: '0 0 12px', fontWeight: '700', fontSize: '15px', color: c.textAccent }}>
+              Two-Factor Authentication (TOTP)
+            </p>
+
+            {!twoFASetup && !twoFAVerified && (
+              <div style={{ marginBottom: '14px' }}>
+                <p style={{ margin: '0 0 10px', fontSize: '13px', color: c.textMuted }}>
+                  Secure your account with an authenticator app (Google Authenticator, Authy, etc.)
+                </p>
+                <Btn onClick={setup2FA} color={c.btnGreen} disabled={loading}>
+                  {loading ? 'Setting up\u2026' : 'Set Up 2FA'}
+                </Btn>
+              </div>
+            )}
+
+            {qrCode && !twoFAVerified && (
+              <div style={{ marginBottom: '16px' }}>
+                <p style={{ margin: '0 0 8px', fontSize: '13px', color: c.textMuted }}>
+                  Scan this QR code with your authenticator app:
+                </p>
+                <img src={qrCode} alt="2FA QR Code" style={{ width: '200px', height: '200px', borderRadius: '8px', marginBottom: '8px' }} />
+                <p style={{ margin: '0 0 12px', fontSize: '12px', color: c.textMuted }}>
+                  Or enter this key manually: <code style={{ color: c.textPrimary, backgroundColor: '#0f1f1a', padding: '2px 6px', borderRadius: '4px' }}>{manualKey}</code>
+                </p>
+              </div>
+            )}
+
+            {twoFASetup && !twoFAVerified && (
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', color: c.textMuted, marginBottom: '8px' }}>
+                  Enter the 6-digit code from your authenticator app
+                </label>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input
+                    type="tel"
+                    placeholder="000000"
+                    value={twoFactorCode}
+                    onChange={e => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    style={{
+                      padding:         '10px 14px',
+                      borderRadius:    '8px',
+                      border:          `1px solid ${c.border}`,
+                      fontSize:        '18px',
+                      letterSpacing:   '4px',
+                      backgroundColor: '#0f1f1a',
+                      color:           c.textPrimary,
+                      outline:         'none',
+                      width:           '160px',
+                      textAlign:       'center',
+                    }}
+                  />
+                  <Btn onClick={verify2FA} color={c.btnGreen} disabled={loading}>
+                    {loading ? 'Verifying\u2026' : 'Verify'}
+                  </Btn>
+                </div>
+              </div>
+            )}
+
+            {twoFAVerified && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: c.successText, fontSize: '18px' }}>{'\u2713'}</span>
+                <p style={{ margin: 0, fontSize: '14px', color: c.successText, fontWeight: '600' }}>
+                  Two-factor authentication is active and verified.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <Message msg={authMessage} type={authType} />
       </Card>
@@ -243,25 +431,22 @@ function OAuth2FACard() {
   )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-//  CleanupCard
-// ══════════════════════════════════════════════════════════════════════════
+// ────────────────────────────────────────────────────────────────────────────
+//  CleanupCard — real file system cleanup
+// ────────────────────────────────────────────────────────────────────────────
 function CleanupCard() {
-  const [cleanupMessage, setCleanupMessage] = useState('')
-  const [msgType,        setMsgType]        = useState('info')
-  const [loading,        setLoading]        = useState(false)
+  const [cleanupResult, setCleanupResult] = useState(null)
+  const [loading, setLoading]            = useState(false)
 
   const handleCleanup = async () => {
     setLoading(true)
-    setCleanupMessage('')
+    setCleanupResult(null)
     try {
       const res  = await fetch('/api/cleanup', { method: 'POST' })
       const data = await res.json()
-      setCleanupMessage(data.message)
-      setMsgType(res.ok ? 'success' : 'error')
+      setCleanupResult(data)
     } catch {
-      setCleanupMessage('Cloud resources cleaned up successfully. 3 stale resources removed.')
-      setMsgType('success')
+      setCleanupResult({ message: 'Failed to reach cleanup endpoint.', removed: [], warnings: [] })
     } finally {
       setLoading(false)
     }
@@ -272,20 +457,53 @@ function CleanupCard() {
       <SectionHeading>Cloud Resource Cleanup</SectionHeading>
       <Card>
         <p style={{ margin: '0 0 16px', fontSize: '14px', color: c.textMuted }}>
-          Ensure that cloud resources are efficiently managed and cleaned up post-deployment.
+          Scan for and clean up stale temporary files, empty directories, and unused resources.
         </p>
         <Btn onClick={handleCleanup} color={c.btnRed} disabled={loading}>
-          {loading ? 'Cleaning…' : 'Clean Up Resources'}
+          {loading ? 'Scanning\u2026' : 'Run Cleanup'}
         </Btn>
-        <Message msg={cleanupMessage} type={msgType} />
+
+        {cleanupResult && (
+          <div style={{ marginTop: '14px' }}>
+            <Message msg={cleanupResult.message} type={cleanupResult.removed?.length > 0 ? 'success' : 'info'} />
+
+            {cleanupResult.removed?.length > 0 && (
+              <div style={{ marginTop: '12px' }}>
+                <p style={{ margin: '0 0 6px', fontSize: '13px', fontWeight: '600', color: c.textAccent }}>Removed:</p>
+                {cleanupResult.removed.map((r, i) => (
+                  <p key={i} style={{ margin: '0 0 4px', fontSize: '12px', color: c.successText }}>
+                    {'\u2713'} {r.resource} ({r.type})
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {cleanupResult.warnings?.length > 0 && (
+              <div style={{ marginTop: '12px' }}>
+                <p style={{ margin: '0 0 6px', fontSize: '13px', fontWeight: '600', color: '#fbbf24' }}>Warnings:</p>
+                {cleanupResult.warnings.map((w, i) => (
+                  <p key={i} style={{ margin: '0 0 4px', fontSize: '12px', color: '#fbbf24' }}>
+                    ! {w.resource} — {w.status}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {cleanupResult.stats && (
+              <p style={{ margin: '10px 0 0', fontSize: '12px', color: c.textMuted }}>
+                node_modules: {cleanupResult.stats.nodeModulesSizeMB} MB (top-level)
+              </p>
+            )}
+          </div>
+        )}
       </Card>
     </section>
   )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-//  Page 2 — receives currentPage + setCurrentPage from App
-// ══════════════════════════════════════════════════════════════════════════
+// ────────────────────────────────────────────────────────────────────────────
+//  Page 2
+// ────────────────────────────────────────────────────────────────────────────
 export default function Page2({ currentPage, setCurrentPage }) {
   return (
     <div style={{
@@ -304,7 +522,7 @@ export default function Page2({ currentPage, setCurrentPage }) {
         borderBottom:    `2px solid ${c.border}`,
       }}>
         <h1 style={{ color: c.textAccent, margin: 0, fontSize: '22px', fontWeight: '700' }}>
-          🥗 Nutritional Insights
+          Nutritional Insights
         </h1>
       </header>
 
@@ -315,7 +533,7 @@ export default function Page2({ currentPage, setCurrentPage }) {
         <OAuth2FACard />
         <CleanupCard />
 
-        {/* Pagination — shared with Page 1 */}
+        {/* Pagination */}
         <section>
           <SectionHeading>Pagination</SectionHeading>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center' }}>
@@ -339,7 +557,7 @@ export default function Page2({ currentPage, setCurrentPage }) {
         borderTop:       `2px solid ${c.border}`,
       }}>
         <p style={{ color: c.textMuted, margin: 0, fontSize: '14px' }}>
-          © 2025 Nutritional Insights. All Rights Reserved.
+          &copy; 2025 Nutritional Insights. All Rights Reserved.
         </p>
       </footer>
 

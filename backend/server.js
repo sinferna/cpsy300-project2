@@ -9,6 +9,9 @@ const correlationsRouter = require('./routes/correlations');
 const distributionRouter = require('./routes/distribution');
 const recipesRouter = require('./routes/recipes');
 const clustersRouter = require('./routes/clusters');
+const securityRouter = require('./routes/security');
+const verify2faRouter = require('./routes/verify-2fa');
+const cleanupRouter = require('./routes/cleanup');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -28,6 +31,9 @@ app.use('/api/correlations', correlationsRouter);
 app.use('/api/distribution', distributionRouter);
 app.use('/api/recipes', recipesRouter);
 app.use('/api/clusters', clustersRouter);
+app.use('/api/security-status', securityRouter);
+app.use('/api/verify-2fa', verify2faRouter);
+app.use('/api/cleanup', cleanupRouter);
 
 // Preload data then start server
 loadData()
